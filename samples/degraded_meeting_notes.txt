@@ -1,0 +1,10 @@
+Document Title: Quarterly AI Lab Operations Review
+S.N0. 1
+Registration No: LAB2025AIOII
+Coordinator Name: Priya Nair
+Contact Email: priya.nair@ailab-research.org
+Session Date: 2025-11-10
+Budget Allocation: $4,850.00
+Focus Area: Automated Document Scanning, Image Restoration & Multi-Category Indexing
+Status: Verified
+

@@ -1,0 +1,7 @@
+  Expense_Date , Vendor_Name , Category , Amount_USD , Approval_Status 
+ 2025-11-01 ,  CloudScale Hosting Ltd  , Infrastructure , "$1,250.50" , Approved 
+ 2025-11-03 ,   DataPulse Analytics   , Software , "$340.00" , Pending 
+ 2025-11-01 , CloudScale Hosting Ltd , Infrastructure , "$1,250.50" , Approved 
+ 2025-11-05 ,   City Courier Express  , Logistics ,  , Needs Receipt 
+ , , , , 
+
