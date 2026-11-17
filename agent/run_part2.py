@@ -12,15 +12,33 @@ Demonstrates:
 from __future__ import annotations
 
 import json
-from loop import AgentLoop
-from tools import (
-    ToolRegistry,
-    default_registry,
-    inspect_visual_document,
-    extract_structured_fields,
-    validate_business_rules,
-    dispatch_action_or_notification,
-)
+import os
+import sys
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    from agent.loop import AgentLoop
+    from agent.tools import (
+        ToolRegistry,
+        default_registry,
+        inspect_visual_document,
+        extract_structured_fields,
+        validate_business_rules,
+        dispatch_action_or_notification,
+    )
+except ImportError:
+    from loop import AgentLoop
+    from tools import (
+        ToolRegistry,
+        default_registry,
+        inspect_visual_document,
+        extract_structured_fields,
+        validate_business_rules,
+        dispatch_action_or_notification,
+    )
 
 
 class Part2SimulatedLLM:

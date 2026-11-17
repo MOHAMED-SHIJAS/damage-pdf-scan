@@ -12,9 +12,20 @@ from __future__ import annotations
 
 import json
 import os
-from loop import AgentLoop
-from tools import default_registry
-from safety import SafetyGate, AuditLogger, StepLimiter
+import sys
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    from agent.loop import AgentLoop
+    from agent.tools import default_registry
+    from agent.safety import SafetyGate, AuditLogger, StepLimiter
+except ImportError:
+    from loop import AgentLoop
+    from tools import default_registry
+    from safety import SafetyGate, AuditLogger, StepLimiter
 
 
 # ============================================================================

@@ -12,9 +12,21 @@ Demonstrates:
 from __future__ import annotations
 
 import json
-from loop import AgentLoop
-from tools import default_registry
-from planner import ExecutionPlan
+import os
+import sys
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    from agent.loop import AgentLoop
+    from agent.tools import default_registry
+    from agent.planner import ExecutionPlan
+except ImportError:
+    from loop import AgentLoop
+    from tools import default_registry
+    from planner import ExecutionPlan
 
 
 class PlanningAwareLLM:
