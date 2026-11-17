@@ -6,12 +6,12 @@ set GIT_EXE="%LOCALAPPDATA%\Programs\Git\cmd\git.exe"
 echo ======================================================================
 echo   Push Vision Agent Studio to GitHub
 echo ======================================================================
-echo Target Repository: https://github.com/MOHAMED-SHIJAS/Damage-document-scanner.git
+echo Target Repository: https://github.com/MOHAMED-SHIJAS/damage-pdf-scan.git
 echo Branch:            main
 echo ======================================================================
 echo.
 echo Press ENTER to push to this repository, or enter a different URL:
-set "DEFAULT_REPO=https://github.com/MOHAMED-SHIJAS/Damage-document-scanner.git"
+set "DEFAULT_REPO=https://github.com/MOHAMED-SHIJAS/damage-pdf-scan.git"
 set /p REPO_URL="Repository URL [%DEFAULT_REPO%]: "
 if "%REPO_URL%"=="" set "REPO_URL=%DEFAULT_REPO%"
 
@@ -35,7 +35,7 @@ if %ERRORLEVEL% equ 0 (
     echo   Next step: Deploy on Render:
     echo   1. Go to https://dashboard.render.com
     echo   2. Click "New +" -^> "Web Service"
-    echo   3. Connect repository: MOHAMED-SHIJAS/Damage-document-scanner
+    echo   3. Connect repository: MOHAMED-SHIJAS/damage-pdf-scan
     echo   4. Render will auto-detect render.yaml and deploy!
     echo ======================================================================
 ) else (
