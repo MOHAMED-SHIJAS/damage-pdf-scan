@@ -726,26 +726,15 @@ class DocumentScanner:
                 else:
                     kv_general["Additional Extracted Text Lines"] = " | ".join(cleaned_extra[:12])
 
-        # Determine accurate Document Domain from genuine extracted content ONLY!
-        combined_search = (
-            " ".join(str(v) for v in org_details.values())
-            + " " + " ".join(str(v) for v in score_details.values())
-            + " " + full_text_blob
-            + " " + file_name
-        ).lower()
-
-        if any(w in combined_search for w in ("sgpa", "cgpa", "university", "college", "examinations", "fyugp", "semester", "grade point")):
-            doc_domain = "Academic Examination & Grade Report"
-        elif any(w in combined_search for w in ("logo", "canva", "illustrative", "graphic", "design", "poster", "flyer")):
-            doc_domain = "Graphic Design & Branding Asset"
-        elif any(w in combined_search for w in ("invoice", "subtotal", "tax", "purchase order", "bill to", "amount due")):
-            doc_domain = "Commercial Invoice / Billing Document"
-        elif any(w in combined_search for w in ("receipt", "total", "cashier", "merchant")):
-            doc_domain = "Purchase Receipt"
-        elif people_details and any(w in combined_search for w in ("experience", "education", "skills", "resume", "curriculum")):
-            doc_domain = "Resume / Curriculum Vitae"
-        else:
-            doc_domain = "Scanned Visual / PDF Document"
+        # Guarantee a visible text result for PDFs/images without detected key-value fields.
+        if not org_details and not people_details and not id_details and not date_details and not financial_details and not score_details and not kv_general:
+            fallback_lines = [
+                line.strip()
+                for line in effective_lines
+                if line and len(line.strip()) >= 2
+            ]
+            if fallback_lines:
+                kv_general["Extracted Document Text"] = " | ".join(dict.fromkeys(fallback_lines[:40]))
 
         # Assemble ONLY non-empty suitable categories
         categorized: Dict[str, Dict[str, Any]] = {}

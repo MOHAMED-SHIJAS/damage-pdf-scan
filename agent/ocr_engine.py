@@ -642,34 +642,33 @@ def extract_with_vision_api(
                 b64 = base64.b64encode(tf.read()).decode("ascii")
             parts.append({"inline_data": {"mime_type": target_mime, "data": b64}})
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
         payload = {
             "contents": [{"parts": parts}],
             "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
         }
-        req = urllib.request.Request(
-            url, data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"}, method="POST"
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=35) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-                raw_txt = body["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(raw_txt)
-        except Exception:
-            # Try gemini-2.0-flash fallback
+        gemini_models = ("gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash")
+        for model_name in gemini_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+            req = urllib.request.Request(
+                url, data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}, method="POST"
+            )
             try:
-                url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
-                req2 = urllib.request.Request(
-                    url2, data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}, method="POST"
-                )
-                with urllib.request.urlopen(req2, timeout=35) as resp2:
-                    body2 = json.loads(resp2.read().decode("utf-8"))
-                    raw_txt2 = body2["candidates"][0]["content"]["parts"][0]["text"]
-                    return json.loads(raw_txt2)
-            except Exception:
-                pass
+                with urllib.request.urlopen(req, timeout=35) as resp:
+                    body = json.loads(resp.read().decode("utf-8"))
+                    raw_txt = body["candidates"][0]["content"]["parts"][0]["text"]
+                    result = json.loads(raw_txt)
+                    if isinstance(result.get("categorized_details"), dict):
+                        print(f"Vision extraction succeeded with Gemini model: {model_name}")
+                        return result
+            except urllib.error.HTTPError as exc:
+                try:
+                    error_body = exc.read().decode("utf-8", errors="replace")[:500]
+                except Exception:
+                    error_body = ""
+                print(f"Gemini model {model_name} HTTP {exc.code}: {error_body}")
+            except Exception as exc:
+                print(f"Gemini model {model_name} failed: {type(exc).__name__}: {exc}")
 
     if openai_key and enhanced_image_paths:
         content_items: List[Dict[str, Any]] = [{"type": "text", "text": system_prompt}]
@@ -695,9 +694,20 @@ def extract_with_vision_api(
             with urllib.request.urlopen(req, timeout=35) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
                 raw_txt = body["choices"][0]["message"]["content"]
-                return json.loads(raw_txt)
-        except Exception:
-            pass
+                result = json.loads(raw_txt)
+                if isinstance(result.get("categorized_details"), dict):
+                    print("Vision extraction succeeded with OpenAI")
+                    return result
+        except urllib.error.HTTPError as exc:
+            try:
+                error_body = exc.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                error_body = ""
+            print(f"OpenAI vision HTTP {exc.code}: {error_body}")
+        except Exception as exc:
+            print(f"OpenAI vision failed: {type(exc).__name__}: {exc}")
 
+    if not gemini_key and not openai_key:
+        print("No GEMINI_API_KEY or OPENAI_API_KEY is configured")
     return None
 
