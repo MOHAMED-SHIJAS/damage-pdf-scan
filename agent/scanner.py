@@ -736,6 +736,28 @@ class DocumentScanner:
             if fallback_lines:
                 kv_general["Extracted Document Text"] = " | ".join(dict.fromkeys(fallback_lines[:40]))
 
+        # Determine the document domain from genuine extracted content FIRST
+        combined_search = (
+            " ".join(str(v) for v in org_details.values())
+            + " " + " ".join(str(v) for v in score_details.values())
+            + " " + " ".join(str(v) for v in people_details.values())
+            + " " + full_text_blob
+            + " " + file_name
+        ).lower()
+
+        if any(w in combined_search for w in ("sgpa", "cgpa", "university", "college", "examinations", "fyugp", "semester", "grade point")):
+            doc_domain = "Academic Examination & Grade Report"
+        elif any(w in combined_search for w in ("invoice", "subtotal", "tax", "purchase order", "bill to", "amount due")):
+            doc_domain = "Commercial Invoice / Billing Document"
+        elif any(w in combined_search for w in ("receipt", "total", "cashier", "merchant")):
+            doc_domain = "Purchase Receipt"
+        elif any(w in combined_search for w in ("resume", "curriculum vitae", "experience", "education", "skills")):
+            doc_domain = "Resume / Curriculum Vitae"
+        elif any(w in combined_search for w in ("logo", "canva", "illustrative", "graphic", "design", "poster", "flyer")):
+            doc_domain = "Graphic Design & Branding Asset"
+        else:
+            doc_domain = "Scanned Visual / PDF Document"
+
         # Assemble ONLY non-empty suitable categories
         categorized: Dict[str, Dict[str, Any]] = {}
         if org_details:
@@ -799,28 +821,6 @@ class DocumentScanner:
             "Total Enhancements Applied": len(quality_report.enhancements_applied),
             "Enhancement Summary": "; ".join(quality_report.enhancements_applied[:6]) if quality_report.enhancements_applied else "Document already crisp",
         }
-
-        # Determine the document domain from genuine extracted content.
-        combined_search = (
-            " ".join(str(v) for v in org_details.values())
-            + " " + " ".join(str(v) for v in score_details.values())
-            + " " + " ".join(str(v) for v in people_details.values())
-            + " " + full_text_blob
-            + " " + file_name
-        ).lower()
-
-        if any(w in combined_search for w in ("sgpa", "cgpa", "university", "college", "examinations", "fyugp", "semester", "grade point")):
-            doc_domain = "Academic Examination & Grade Report"
-        elif any(w in combined_search for w in ("invoice", "subtotal", "tax", "purchase order", "bill to", "amount due")):
-            doc_domain = "Commercial Invoice / Billing Document"
-        elif any(w in combined_search for w in ("receipt", "total", "cashier", "merchant")):
-            doc_domain = "Purchase Receipt"
-        elif any(w in combined_search for w in ("resume", "curriculum vitae", "experience", "education", "skills")):
-            doc_domain = "Resume / Curriculum Vitae"
-        elif any(w in combined_search for w in ("logo", "canva", "illustrative", "graphic", "design", "poster", "flyer")):
-            doc_domain = "Graphic Design & Branding Asset"
-        else:
-            doc_domain = "Scanned Visual / PDF Document"
 
         return doc_domain, categorized, extracted_tables, uniq_repairs
 
