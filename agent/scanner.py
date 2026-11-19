@@ -800,6 +800,28 @@ class DocumentScanner:
             "Enhancement Summary": "; ".join(quality_report.enhancements_applied[:6]) if quality_report.enhancements_applied else "Document already crisp",
         }
 
+        # Determine the document domain from genuine extracted content.
+        combined_search = (
+            " ".join(str(v) for v in org_details.values())
+            + " " + " ".join(str(v) for v in score_details.values())
+            + " " + " ".join(str(v) for v in people_details.values())
+            + " " + full_text_blob
+            + " " + file_name
+        ).lower()
+
+        if any(w in combined_search for w in ("sgpa", "cgpa", "university", "college", "examinations", "fyugp", "semester", "grade point")):
+            doc_domain = "Academic Examination & Grade Report"
+        elif any(w in combined_search for w in ("invoice", "subtotal", "tax", "purchase order", "bill to", "amount due")):
+            doc_domain = "Commercial Invoice / Billing Document"
+        elif any(w in combined_search for w in ("receipt", "total", "cashier", "merchant")):
+            doc_domain = "Purchase Receipt"
+        elif any(w in combined_search for w in ("resume", "curriculum vitae", "experience", "education", "skills")):
+            doc_domain = "Resume / Curriculum Vitae"
+        elif any(w in combined_search for w in ("logo", "canva", "illustrative", "graphic", "design", "poster", "flyer")):
+            doc_domain = "Graphic Design & Branding Asset"
+        else:
+            doc_domain = "Scanned Visual / PDF Document"
+
         return doc_domain, categorized, extracted_tables, uniq_repairs
 
     # ------------------------------------------------------------------------
@@ -1336,6 +1358,7 @@ class ScanAwareAgentLLM:
         if self.scan_res is not None:
             domain = self.scan_res.document_domain
             cat_names = list(self.scan_res.categorized_details.keys())
+           
             q_orig = self.scan_res.quality_report.original_score
             q_enh = self.scan_res.quality_report.enhanced_score
             repairs_count = len(self.scan_res.quality_report.before_after_repairs)
