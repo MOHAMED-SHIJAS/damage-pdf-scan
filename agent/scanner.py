@@ -681,7 +681,7 @@ class DocumentScanner:
             # Classify un-colonized lines by semantic content
             low = line_txt.lower()
             if any(w in low for w in ("college", "university", "affiliated", "institute", "inc.", "llc", "ltd", "corp", "company", "school", "academy", "hardware", "logistics", "solutions", "technologies")) or re.search(r"\bco\.?\b", low):
-                lbl = "Affiliated University" if "affiliated" in low else ("Academic Institution" if ("college" in low or "university" in low) else "Organization")
+                lbl = "Affiliated University" if "affiliated" in low else ("Academic Institution" if ("college" in low or "university" in low) else "🏢 Organization & Authority Details")
                 if lbl not in org_details:
                     org_details[lbl] = line_txt
                 else:
@@ -931,7 +931,7 @@ class DocumentScanner:
             native_pdf = extract_pdf_native_details(file_path, assets_dir=pdf_assets_dir)
 
             # Render pages for visual diagnosis, enhancement & OCR
-            rendered_pages = render_pdf_to_images(file_path, pdf_assets_dir, max_pages=3)
+            rendered_pages = render_pdf_to_images(file_path, pdf_assets_dir, max_pages=1)
             best_q_report: Optional[QualityReport] = None
             enhanced_page_paths: List[str] = []
             inv_page_paths: List[Optional[str]] = []
@@ -1017,7 +1017,7 @@ class DocumentScanner:
                 except Exception:
                     pass
 
-            if enhanced_page_paths:
+            if enhanced_page_paths and not all_lines:
                 for idx, ep in enumerate(enhanced_page_paths):
                     ocr_res = run_local_ocr(ep)
                     p_rows = reconstruct_spatial_rows(ocr_res)

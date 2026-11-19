@@ -646,7 +646,7 @@ def extract_with_vision_api(
             "contents": [{"parts": parts}],
             "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
         }
-        gemini_models = ("gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash")
+        gemini_models = ("gemini-2.5-flash", "gemini-flash-latest")
         for model_name in gemini_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
             req = urllib.request.Request(
@@ -654,7 +654,7 @@ def extract_with_vision_api(
                 headers={"Content-Type": "application/json"}, method="POST"
             )
             try:
-                with urllib.request.urlopen(req, timeout=35) as resp:
+                with urllib.request.urlopen(req, timeout=12) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
                     raw_txt = body["candidates"][0]["content"]["parts"][0]["text"]
                     result = json.loads(raw_txt)
@@ -691,7 +691,7 @@ def extract_with_vision_api(
             method="POST"
         )
         try:
-            with urllib.request.urlopen(req, timeout=35) as resp:
+            with urllib.request.urlopen(req, timeout=12) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
                 raw_txt = body["choices"][0]["message"]["content"]
                 result = json.loads(raw_txt)
