@@ -470,25 +470,55 @@ def render_pdf_to_images(pdf_path: str, out_dir: str, max_pages: int = 3) -> Lis
 
 
 def run_local_ocr(image_path: str) -> Dict[str, Any]:
-    """Runs Windows local offline OCR on an image and returns text lines + word bounding boxes."""
-    if sys.platform != "win32" or not os.path.exists(image_path):
+    """Runs Windows OCR, or cross-platform RapidOCR on Linux/Render when available."""
+    if not os.path.exists(image_path):
         return {"text": "", "lines": []}
-    script_path = os.path.join(tempfile.gettempdir(), "vision_agent_ocr_img.ps1")
-    with open(script_path, "w", encoding="utf-8") as sf:
-        sf.write(_PS_OCR_IMAGE)
+
+    if sys.platform == "win32":
+        script_path = os.path.join(tempfile.gettempdir(), "vision_agent_ocr_img.ps1")
+        with open(script_path, "w", encoding="utf-8") as sf:
+            sf.write(_PS_OCR_IMAGE)
+
+        try:
+            proc = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path,
+                 "-ImgPath", os.path.abspath(image_path)],
+                capture_output=True, text=True, encoding="utf-8", errors="ignore", timeout=25
+            )
+            stdout = proc.stdout.strip()
+            if stdout.startswith("{"):
+                result = json.loads(stdout)
+                if result.get("text"):
+                    return result
+        except Exception:
+            pass
 
     try:
-        proc = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path,
-             "-ImgPath", os.path.abspath(image_path)],
-            capture_output=True, text=True, encoding="utf-8", errors="ignore", timeout=25
-        )
-        stdout = proc.stdout.strip()
-        if stdout.startswith("{"):
-            return json.loads(stdout)
+        from rapidocr_onnxruntime import RapidOCR
+
+        engine = RapidOCR()
+        result, _ = engine(image_path)
+        if not result:
+            return {"text": "", "lines": []}
+
+        lines: List[Dict[str, Any]] = []
+        text_parts: List[str] = []
+        for item in result:
+            text = str(item[1]).strip()
+            if not text:
+                continue
+            text_parts.append(text)
+            box = item[0]
+            xs = [float(point[0]) for point in box]
+            ys = [float(point[1]) for point in box]
+            lines.append({
+                "text": text,
+                "box": {"x": round(min(xs)), "y": round(min(ys)), "w": round(max(xs) - min(xs)), "h": round(max(ys) - min(ys))},
+            })
+
+        return {"text": "\n".join(text_parts), "lines": lines}
     except Exception:
-        pass
-    return {"text": "", "lines": []}
+        return {"text": "", "lines": []}
 
 
 def reconstruct_spatial_rows(ocr_data: Dict[str, Any]) -> List[Dict[str, Any]]:

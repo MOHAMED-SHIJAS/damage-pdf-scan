@@ -1012,6 +1012,22 @@ class DocumentScanner:
             all_lines: List[str] = list(native_pdf.get("native_text_lines", []))
             all_spatial_rows: List[Dict[str, Any]] = []
 
+            # Cross-platform searchable-text fallback for hosted Linux deployments.
+            if not all_lines:
+                try:
+                    import fitz
+
+                    with fitz.open(file_path) as pdf_doc:
+                        for pdf_page in pdf_doc:
+                            page_text = pdf_page.get_text("text") or ""
+                            all_lines.extend(
+                                line.strip()
+                                for line in page_text.splitlines()
+                                if line.strip()
+                            )
+                except Exception:
+                    pass
+
             if enhanced_page_paths:
                 for idx, ep in enumerate(enhanced_page_paths):
                     ocr_res = run_local_ocr(ep)
@@ -1345,7 +1361,7 @@ class ScanAwareAgentLLM:
                     "total_enhancements_applied",
                     "enhancement_summary",
                 )
-            ][:15]
+                       ][:15]
 
             if self.step == 1:
                 return (
