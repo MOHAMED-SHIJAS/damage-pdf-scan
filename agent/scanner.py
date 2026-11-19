@@ -971,6 +971,9 @@ class DocumentScanner:
             })
             if rendered_pages:
                 best_q_report.original_preview_path = rendered_pages[0]
+                enhanced_page_paths = [p for p in enhanced_page_paths if p and os.path.exists(p)]
+                if enhanced_page_paths:
+                    best_q_report.enhanced_file_path = enhanced_page_paths[0]
 
             # Check dominant colors from rendered page or first embedded image
             if not best_q_report.diagnostics.get("dominant_colors") and native_pdf["embedded_images"]:

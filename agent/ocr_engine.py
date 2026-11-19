@@ -426,27 +426,44 @@ try { $fs.Dispose() } catch {}
 
 
 def render_pdf_to_images(pdf_path: str, out_dir: str, max_pages: int = 3) -> List[str]:
-    """Renders PDF pages to high-res PNG images on Windows using built-in WinRT PDF API."""
-    if sys.platform != "win32":
-        return []
+    """Renders PDF pages on Windows or through PyMuPDF on Linux/Render."""
     os.makedirs(out_dir, exist_ok=True)
-    script_path = os.path.join(tempfile.gettempdir(), "vision_agent_render_pdf.ps1")
-    with open(script_path, "w", encoding="utf-8") as sf:
-        sf.write(_PS_RENDER_PDF)
 
+    if sys.platform == "win32":
+        script_path = os.path.join(tempfile.gettempdir(), "vision_agent_render_pdf.ps1")
+        with open(script_path, "w", encoding="utf-8") as sf:
+            sf.write(_PS_RENDER_PDF)
+
+        try:
+            proc = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path,
+                 "-PdfPath", os.path.abspath(pdf_path), "-OutImgDir", os.path.abspath(out_dir),
+                 "-MaxPages", str(max_pages)],
+                capture_output=True, text=True, encoding="utf-8", errors="ignore", timeout=25
+            )
+            rendered = []
+            for line in proc.stdout.splitlines():
+                if line.startswith("PAGE_PNG="):
+                    p = line.split("=", 1)[1].strip().replace("\\", "/")
+                    if os.path.exists(p):
+                        rendered.append(p)
+            if rendered:
+                return rendered
+        except Exception:
+            pass
+
+    # Cross-platform fallback for Linux/Render and as a Windows fallback.
     try:
-        proc = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path,
-             "-PdfPath", os.path.abspath(pdf_path), "-OutImgDir", os.path.abspath(out_dir),
-             "-MaxPages", str(max_pages)],
-            capture_output=True, text=True, encoding="utf-8", errors="ignore", timeout=25
-        )
-        rendered = []
-        for line in proc.stdout.splitlines():
-            if line.startswith("PAGE_PNG="):
-                p = line.split("=", 1)[1].strip().replace("\\", "/")
-                if os.path.exists(p):
-                    rendered.append(p)
+        import fitz
+
+        rendered: List[str] = []
+        with fitz.open(pdf_path) as doc:
+            for page_index in range(min(doc.page_count, max_pages)):
+                page = doc.load_page(page_index)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+                output_path = os.path.join(out_dir, f"page_{page_index + 1}.png").replace("\\", "/")
+                pix.save(output_path)
+                rendered.append(output_path)
         return rendered
     except Exception:
         return []
