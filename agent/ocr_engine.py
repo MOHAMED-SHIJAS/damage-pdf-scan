@@ -591,12 +591,13 @@ def extract_with_vision_api(
         return None
 
     system_prompt = (
-        "You are a precision document scanner. Analyze the attached document carefully.\n"
+        "You are a precision document scanner. Read every visible label and value in the attached document.\n"
         "RULES:\n"
-        "1. Extract ONLY details that are genuinely visible in this document. NEVER invent, guess, or assume fields that are not shown.\n"
-        "2. Enhance/clean any blurry, faint, skewed, or noisy text readings, and list each quality enhancement or correction made in 'enhancements_applied'.\n"
-        "3. Sort all extracted details into suitable, domain-appropriate categories (e.g., Institution/Organization, Candidate/Customer, Identifiers, Dates/Timeline, Financial/Academic Scores, Line Items/Subjects, Design/Visual Details).\n"
-        "4. Return STRICT JSON ONLY matching this schema:\n"
+        "1. Extract ALL genuinely visible fields, names, identifiers, dates, amounts, grades, line items, addresses, and text. NEVER invent missing values.\n"
+        "2. Preserve exact document values as strings. Split a list/table into separate fields or line-item entries.\n"
+        "3. Sort details into suitable categories and include as many non-empty category fields as possible.\n"
+        "4. If text is unclear, repair the reading and mention the repair in 'enhancements_applied'.\n"
+        "5. Return STRICT JSON ONLY matching this schema:\n"
         "{\n"
         '  "document_domain": "<accurate domain label>",\n'
         '  "summary": "<1-2 sentence accurate summary of document>",\n'
@@ -622,7 +623,12 @@ def extract_with_vision_api(
             "contents": [{"parts": parts}],
             "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
         }
-        gemini_models = ("gemini-2.5-flash", "gemini-flash-latest")
+        gemini_models = (
+            "gemini-2.5-flash",
+            "gemini-flash-latest",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+        )
         for model_name in gemini_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
             req = urllib.request.Request(
@@ -630,9 +636,13 @@ def extract_with_vision_api(
                 headers={"Content-Type": "application/json"}, method="POST"
             )
             try:
-                with urllib.request.urlopen(req, timeout=12) as resp:
+                with urllib.request.urlopen(req, timeout=25) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
-                    raw_txt = body["candidates"][0]["content"]["parts"][0]["text"]
+                    raw_txt = body["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    if raw_txt.startswith("```"):
+                        raw_txt = raw_txt.strip("`").strip()
+                        if raw_txt.lower().startswith("json"):
+                            raw_txt = raw_txt[4:].strip()
                     result = json.loads(raw_txt)
                     if isinstance(result.get("categorized_details"), dict):
                         print(f"Vision extraction succeeded with Gemini model: {model_name}")
@@ -669,7 +679,11 @@ def extract_with_vision_api(
         try:
             with urllib.request.urlopen(req, timeout=12) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
-                raw_txt = body["choices"][0]["message"]["content"]
+                raw_txt = body["choices"][0]["message"]["content"].strip()
+                if raw_txt.startswith("```"):
+                    raw_txt = raw_txt.strip("`").strip()
+                    if raw_txt.lower().startswith("json"):
+                        raw_txt = raw_txt[4:].strip()
                 result = json.loads(raw_txt)
                 if isinstance(result.get("categorized_details"), dict):
                     print("Vision extraction succeeded with OpenAI")
