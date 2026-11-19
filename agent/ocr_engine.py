@@ -470,7 +470,7 @@ def render_pdf_to_images(pdf_path: str, out_dir: str, max_pages: int = 3) -> Lis
 
 
 def run_local_ocr(image_path: str) -> Dict[str, Any]:
-    """Runs Windows OCR, or cross-platform RapidOCR on Linux/Render when available."""
+    """Runs Windows OCR locally; hosted Linux uses searchable text or Vision APIs."""
     if not os.path.exists(image_path):
         return {"text": "", "lines": []}
 
@@ -493,33 +493,9 @@ def run_local_ocr(image_path: str) -> Dict[str, Any]:
         except Exception:
             pass
 
-    try:
-        from rapidocr_onnxruntime import RapidOCR
-
-        engine = RapidOCR()
-        result, _ = engine(image_path)
-        if not result:
-            return {"text": "", "lines": []}
-
-        lines: List[Dict[str, Any]] = []
-        text_parts: List[str] = []
-        for item in result:
-            text = str(item[1]).strip()
-            if not text:
-                continue
-            text_parts.append(text)
-            box = item[0]
-            xs = [float(point[0]) for point in box]
-            ys = [float(point[1]) for point in box]
-            lines.append({
-                "text": text,
-                "box": {"x": round(min(xs)), "y": round(min(ys)), "w": round(max(xs) - min(xs)), "h": round(max(ys) - min(ys))},
-            })
-
-        return {"text": "\n".join(text_parts), "lines": lines}
-    except Exception:
-        return {"text": "", "lines": []}
-
+    # Hosted Linux: PyMuPDF text extraction and Vision APIs handle OCR without loading
+    # a large ONNX model that can exhaust a free Render instance.
+    return {"text": "", "lines": []}
 
 def reconstruct_spatial_rows(ocr_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
