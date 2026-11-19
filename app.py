@@ -373,6 +373,10 @@ if menu == "🌟 Interactive Agent Playground":
             st.markdown("### 📂 Extracted Details (Sorted into Suitable Categories)")
             st.caption("Only authentic details genuinely present in this document, repaired for clarity and organized by category:")
 
+            if getattr(scan_res, "extracted_text_preview", ""):
+                with st.expander("📄 Extracted Text / Document Details", expanded=True):
+                    st.code(scan_res.extracted_text_preview, language=None)
+
             cat_names = list(scan_res.categorized_details.keys())
             if cat_names:
                 cat_tabs = st.tabs(cat_names)
